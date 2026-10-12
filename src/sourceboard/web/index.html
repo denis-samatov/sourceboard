@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SourceBoard</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='3' fill='%23b4532a'/%3E%3Cpath d='M9 12h14M9 17h10M9 22h6' stroke='white' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"></span>
+      <span class="brand-name">SourceBoard</span>
+      <span id="embedder-badge" class="badge" title=""></span>
+    </div>
+    <div id="progress" class="progress" hidden>
+      <div class="progress-bar"><span id="progress-fill"></span></div>
+      <span id="progress-text"></span>
+    </div>
+    <nav class="exports" aria-label="Экспорт">
+      <span class="muted">Экспорт:</span>
+      <a href="/api/export/markdown" download>Документ .md</a>
+      <a href="/api/export/csv" download>Монтажные отметки .csv</a>
+      <a href="/api/export/json" download>JSON</a>
+    </nav>
+  </header>
+
+  <main class="layout">
+    <!-- Materials -->
+    <section class="pane pane-sources" aria-labelledby="sources-h">
+      <h2 id="sources-h">Материалы</h2>
+      <form id="folder-form" class="folder-form">
+        <input id="folder-input" type="text" placeholder="/Users/me/Проект/материалы" autocomplete="off"
+               aria-label="Путь к папке" required>
+        <button type="submit">Добавить папку</button>
+      </form>
+      <div id="folders"></div>
+      <div class="row-between">
+        <h3>Файлы</h3>
+        <button id="reindex" class="ghost small" type="button">Переиндексировать</button>
+      </div>
+      <ul id="sources" class="sources"></ul>
+      <p id="tools" class="hint"></p>
+    </section>
+
+    <!-- Search -->
+    <section class="pane pane-search" aria-labelledby="search-h" id="search-pane">
+      <h2 id="search-h" class="visually-hidden">Поиск</h2>
+      <form id="search-form" class="search-form">
+        <div class="search-box">
+          <textarea id="query" rows="2" placeholder="Найди материалы о том, как закрытие завода повлияло на транспорт…"
+                    aria-label="Запрос"></textarea>
+          <div class="search-actions">
+            <input id="image-input" type="file" accept="image/*" hidden>
+            <button id="image-btn" class="file-btn" type="button"
+                    title="Искать по изображению (можно перетащить или вставить из буфера)">
+              <span aria-hidden="true">🖼</span> По изображению
+            </button>
+            <button type="submit" class="primary">Найти</button>
+          </div>
+        </div>
+        <div class="filters">
+          <fieldset class="chips" aria-label="Типы материалов">
+            <label><input type="checkbox" name="modality" value="text" checked> Текст и речь</label>
+            <label><input type="checkbox" name="modality" value="image" checked> Изображения и страницы</label>
+            <label><input type="checkbox" name="modality" value="video" checked> Кадры видео</label>
+            <label><input type="checkbox" name="modality" value="audio" checked> Звук</label>
+          </fieldset>
+          <div class="selects">
+            <select id="task" aria-label="Тип запроса">
+              <option value="SearchQuery">Поиск</option>
+              <option value="FactChecking">Проверка утверждения</option>
+              <option value="QuestionAnswering">Вопрос</option>
+            </select>
+            <select id="mode" aria-label="Способ поиска">
+              <option value="hybrid">Слова + смысл</option>
+              <option value="lexical">Только слова</option>
+              <option value="vector">Только смысл</option>
+            </select>
+          </div>
+        </div>
+      </form>
+      <div id="results-head" class="results-head"></div>
+      <div id="results" class="results" aria-live="polite"></div>
+      <div id="drop-overlay" class="drop-overlay" hidden>Отпустите изображение, чтобы найти похожие материалы</div>
+    </section>
+
+    <!-- Theses -->
+    <section class="pane pane-board" aria-labelledby="board-h">
+      <h2 id="board-h">Тезисы</h2>
+      <form id="thesis-form" class="thesis-form">
+        <textarea id="thesis-input" rows="2" placeholder="Новый тезис, например: закрытие завода сократило транспорт в районе" required
+                  aria-label="Текст тезиса"></textarea>
+        <button type="submit">Добавить тезис</button>
+      </form>
+      <div id="theses"></div>
+    </section>
+  </main>
+
+  <dialog id="viewer" class="viewer" aria-labelledby="viewer-title">
+    <div class="viewer-head">
+      <div>
+        <h2 id="viewer-title"></h2>
+        <p id="viewer-meta" class="muted"></p>
+      </div>
+      <button class="ghost" type="button" data-close aria-label="Закрыть">✕</button>
+    </div>
+    <div class="viewer-body">
+      <div id="viewer-original" class="viewer-original"></div>
+      <aside class="viewer-side">
+        <h3>Извлечённый текст рядом</h3>
+        <div id="viewer-context" class="viewer-context"></div>
+        <div id="viewer-links"></div>
+        <div id="viewer-actions" class="viewer-actions"></div>
+      </aside>
+    </div>
+  </dialog>
+
+  <template id="tpl-result">
+    <article class="card result">
+      <header class="card-head">
+        <span class="modality"></span>
+        <button class="source-link" type="button"></button>
+        <span class="locator"></span>
+      </header>
+      <div class="card-body"></div>
+      <footer class="card-foot">
+        <span class="why"></span>
+        <div class="actions"></div>
+      </footer>
+    </article>
+  </template>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>
