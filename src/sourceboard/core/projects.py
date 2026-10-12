@@ -17,9 +17,9 @@ import threading
 from dataclasses import replace
 from pathlib import Path
 
+from ..ingestion.embed import Embedder
 from .config import Settings
 from .db import Database, utcnow
-from .embed import Embedder
 
 log = logging.getLogger(__name__)
 
@@ -49,9 +49,9 @@ def rewrite_media_paths(db_path: Path, old_dir: Path, new_dir: Path) -> int:
 
 class Project:
     def __init__(self, settings: Settings, embedder: Embedder) -> None:
-        from .board import Board
-        from .indexer import Indexer
-        from .search import SearchEngine
+        from ..board.board import Board
+        from ..ingestion.indexer import Indexer
+        from ..search.search import SearchEngine
 
         self.settings = settings
         self.db = Database(settings.db_path)
@@ -127,7 +127,7 @@ class ProjectRegistry:
         for project in self.list():
             if project["id"] == project_id:
                 return project
-        from .board import NotFound
+        from ..board.board import NotFound
 
         raise NotFound(f"project {project_id}")
 
@@ -193,6 +193,6 @@ class ProjectRegistry:
         for p in self.list():
             if p["id"] == ref or p["name"].lower() == ref.lower():
                 return p["id"]
-        from .board import NotFound
+        from ..board.board import NotFound
 
         raise NotFound(f"project {ref}")

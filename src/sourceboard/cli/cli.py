@@ -10,7 +10,7 @@ import socket
 import sys
 from pathlib import Path
 
-from .config import Settings
+from ..core.config import Settings
 
 
 def _settings(args: argparse.Namespace) -> Settings:
@@ -20,8 +20,8 @@ def _settings(args: argparse.Namespace) -> Settings:
 
 
 def _services(args: argparse.Namespace):
-    from .api import Services
-    from .embed import create_embedder
+    from ..api.api import Services
+    from ..ingestion.embed import create_embedder
 
     settings = _settings(args)
     return Services(settings, create_embedder(settings))
@@ -30,7 +30,7 @@ def _services(args: argparse.Namespace):
 def cmd_serve(args: argparse.Namespace) -> int:
     import uvicorn
 
-    from .api import LOCAL_HOSTS, create_app
+    from ..api.api import LOCAL_HOSTS, create_app
 
     # Bind before loading anything, so a busy port fails fast and nothing starts indexing.
     family = socket.AF_INET6 if ":" in args.host else socket.AF_INET
@@ -81,7 +81,7 @@ def cmd_index(args: argparse.Namespace) -> int:
 
 
 def cmd_search(args: argparse.Namespace) -> int:
-    from .export import locator
+    from ..board.export import locator
 
     services = _services(args)
     results = services.search.search(
@@ -103,7 +103,7 @@ def cmd_search(args: argparse.Namespace) -> int:
 
 
 def cmd_eval(args: argparse.Namespace) -> int:
-    from .evaluate import evaluate, load_tasks
+    from ..search.evaluate import evaluate, load_tasks
 
     services = _services(args)
     tasks = load_tasks(Path(args.tasks))
@@ -113,7 +113,7 @@ def cmd_eval(args: argparse.Namespace) -> int:
 
 
 def cmd_export(args: argparse.Namespace) -> int:
-    from .export import to_json, to_markdown, to_markers_csv
+    from ..board.export import to_json, to_markdown, to_markers_csv
 
     services = _services(args)
     render = {"markdown": to_markdown, "csv": to_markers_csv, "json": to_json}[args.format]

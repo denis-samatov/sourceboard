@@ -1,8 +1,7 @@
 from pathlib import Path
 
 from sourceboard.api import Services
-from sourceboard.evaluate import evaluate, matches
-from sourceboard.search import fts_query
+from sourceboard.search import evaluate, fts_query, matches
 
 
 def sources(services: Services) -> dict[str, dict]:
@@ -110,7 +109,7 @@ def test_vector_fusion_keeps_strong_hits_of_any_modality(services: Services, tmp
     another modality (regression: image queries used to return only text)."""
     import numpy as np
 
-    from sourceboard.db import utcnow
+    from sourceboard.core import utcnow
 
     dim = services.embedder.dim
     query = np.zeros(dim, dtype=np.float32)
@@ -147,8 +146,8 @@ def test_hybrid_damps_word_matches_far_from_meaning(settings, tmp_path: Path):
     hit, but an exact-word match still contributes (floor weight)."""
     import numpy as np
 
-    from sourceboard.db import utcnow
-    from sourceboard.embed import HashEmbedder
+    from sourceboard.core import utcnow
+    from sourceboard.ingestion import HashEmbedder
 
     class AxisEmbedder(HashEmbedder):
         def embed_query(self, text, task="SearchQuery"):

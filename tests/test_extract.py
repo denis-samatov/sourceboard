@@ -1,15 +1,15 @@
 from pathlib import Path
 
-from sourceboard.extract import (
+from sourceboard.ingestion import (
     Cue,
     cues_to_srt,
+    discover,
     kind_for,
     parse_subtitles,
     parse_timestamp,
     split_text,
     window_cues,
 )
-from sourceboard.indexer import discover
 
 
 def test_split_text_respects_limit_and_keeps_paragraphs():

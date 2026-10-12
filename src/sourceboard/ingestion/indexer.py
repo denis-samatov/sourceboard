@@ -14,8 +14,8 @@ from pathlib import Path
 
 import numpy as np
 
-from .config import Settings
-from .db import Database, utcnow
+from ..core.config import Settings
+from ..core.db import Database, utcnow
 from .embed import Embedder
 from .extract import (
     SUBTITLE_EXT,

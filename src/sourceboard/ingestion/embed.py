@@ -18,7 +18,7 @@ from typing import Protocol
 
 import numpy as np
 
-from .config import Settings
+from ..core.config import Settings
 
 log = logging.getLogger(__name__)
 
