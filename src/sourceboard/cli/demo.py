@@ -14,7 +14,7 @@ import tempfile
 import wave
 from pathlib import Path
 
-from .extract import Cue, cues_to_srt
+from ..ingestion.extract import Cue, cues_to_srt
 
 FONT_CANDIDATES = [
     "/System/Library/Fonts/Supplemental/Arial.ttf",

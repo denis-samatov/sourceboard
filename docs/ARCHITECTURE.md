@@ -8,54 +8,77 @@ SourceBoard is a local multimodal evidence board designed to discover, track, an
 Sources (PDF, DOCX, Images, Video, Audio, Subtitles)
                        │
                        ▼
-        Content Extraction (`extract.py`)
-    (pypdf, python-docx, tesseract OCR, faster-whisper, ffmpeg)
+    Ingestion Pipeline (`ingestion/extract.py`)
+ (pypdf, python-docx, tesseract OCR, faster-whisper, ffmpeg)
                        │
                        ▼
           Chunking & Location Pinning
          (pages, cue spans, timecodes)
                        │
                        ▼
-         Multimodal Embedding (`embed.py`)
-       (EmbeddingGemma 2 via sentence-transformers)
+    Multimodal Embedding (`ingestion/embed.py`)
+   (EmbeddingGemma 2 via sentence-transformers)
                        │
                        ▼
-          Storage Engine (`db.py`)
+          Storage Engine (`core/db.py`)
    (SQLite3: sources, chunks, FTS5 index, vectors)
                        │
        ┌───────────────┴───────────────┐
        ▼                               ▼
-Hybrid Search (`search.py`)     Evidence Board (`board.py`)
-(FTS5 + Modality Vectors, RRF)   (Claims, Roles, Verification)
+Hybrid Search (`search/search.py`)  Evidence Board (`board/board.py`)
+(FTS5 + Modality Vectors, RRF)      (Claims, Roles, Verification)
        │                               │
        └───────────────┬───────────────┘
                        ▼
-           HTTP API & UI (`api.py`, `web/`)
+        HTTP API & Web UI (`api/api.py`, `api/web/`)
                        │
                        ▼
-             Export (`export.py`)
-          (Markdown Dossier, CSV, JSON)
+          Export Engine (`board/export.py`)
+           (Markdown Dossier, CSV, JSON)
 ```
 
-## Module Responsibilities
+## Package Structure & Module Responsibilities
 
-| Module | Core Responsibility |
+The codebase in `src/sourceboard/` is partitioned into focused, cohesive subpackages:
+
+### `sourceboard.core`
+| Module | Responsibility |
 |---|---|
-| `config.py` | Runtime configuration, data directory paths, hardware device selection (`cpu`, `mps`, `cuda`), model thresholds. |
-| `db.py` | SQLite connection pooling, schema initialization, migrations, FTS5 virtual tables, transaction management. |
-| `extract.py` | Media decoding and content extraction: text layers, OCR with Tesseract, ASR with faster-whisper, frame extraction with ffmpeg. |
-| `embed.py` | Embedding generation via EmbeddingGemma 2 (`GemmaEmbedder`) with Matryoshka dimension truncation, fallback `HashEmbedder`. |
-| `indexer.py` | Directory traversal, SHA-256 fingerprinting, incremental scanning, chunking, and stale locator re-linking. |
-| `copies.py` | Near-duplicate detection to identify syndicated releases and reprints ("copies are not corroboration"). |
-| `search.py` | Hybrid search combining SQLite FTS5 lexical matching and in-memory cosine similarity across modalities, fused via RRF. |
-| `board.py` | Core domain entities: claims, evidence attachments, epistemic role assignments (`supports`, `limits`, `contradicts`, `context`), and verification staleness detection. |
-| `export.py` | Serialization to structured Markdown dossiers, editor cut-lists (CSV with timecodes), and full JSON archives. |
-| `projects.py` | Multi-project isolation: separate SQLite databases and media folders under `~/.sourceboard/projects/<id>`. |
-| `evaluate.py` | Offline retrieval benchmark evaluation computing Recall@K and MRR on JSONL test suites. |
-| `api.py` | FastAPI application exposing search, indexing, project management, and serving static web assets. |
-| `cli.py` | Command-line interface commands (`serve`, `index`, `search`, `eval`, `export`, `demo`). |
-| `demo.py` | Synthetic demonstration dataset generator with simulated hearing footage, meeting minutes, and audio interviews. |
-| `web/` | Vanilla JS / CSS / HTML client interface running directly in the browser with no build step required. |
+| `core/config.py` | Runtime configuration (`Settings`), data directory paths, hardware device selection (`cpu`, `mps`, `cuda`), model thresholds. |
+| `core/db.py` | SQLite connection pooling (`Database`), schema initialization, migrations, FTS5 virtual tables, transaction management. |
+| `core/projects.py` | Multi-project isolation (`ProjectRegistry`, `Project`): separate SQLite databases and media folders under `~/.sourceboard/projects/<id>`. |
+
+### `sourceboard.ingestion`
+| Module | Responsibility |
+|---|---|
+| `ingestion/extract.py` | Media decoding and content extraction (`Extractor`): text layers, OCR with Tesseract, ASR with faster-whisper, frame extraction with ffmpeg. |
+| `ingestion/embed.py` | Embedding generation via EmbeddingGemma 2 (`GemmaEmbedder`) with Matryoshka dimension truncation, fallback `HashEmbedder`. |
+| `ingestion/indexer.py` | Directory traversal (`Indexer`), SHA-256 fingerprinting, incremental scanning, chunking, and stale locator re-linking. |
+| `ingestion/copies.py` | Near-duplicate detection to identify syndicated releases and reprints ("copies are not corroboration"). |
+
+### `sourceboard.search`
+| Module | Responsibility |
+|---|---|
+| `search/search.py` | Hybrid search engine (`SearchEngine`) combining SQLite FTS5 lexical matching and in-memory cosine similarity across modalities, fused via RRF. |
+| `search/evaluate.py` | Offline retrieval benchmark evaluation computing Recall@K and MRR on JSONL test suites (`evaluate`). |
+
+### `sourceboard.board`
+| Module | Responsibility |
+|---|---|
+| `board/board.py` | Core domain entities (`Board`): claims, evidence attachments, epistemic role assignments (`supports`, `limits`, `contradicts`, `context`), and verification staleness detection. |
+| `board/export.py` | Serialization to structured Markdown dossiers (`to_markdown`), editor cut-lists (`to_markers_csv`), and full JSON archives (`to_json`). |
+
+### `sourceboard.api`
+| Module | Responsibility |
+|---|---|
+| `api/api.py` | FastAPI application (`create_app`, `Services`) exposing search, indexing, project management, and serving static web assets. |
+| `api/web/` | Vanilla JS / CSS / HTML client interface running directly in the browser with no build step required. |
+
+### `sourceboard.cli`
+| Module | Responsibility |
+|---|---|
+| `cli/cli.py` | Command-line interface entrypoint (`main`) providing subcommands: `serve`, `index`, `search`, `eval`, `export`, `demo`. |
+| `cli/demo.py` | Synthetic demonstration dataset generator (`make_demo`) with simulated hearing footage, meeting minutes, and audio interviews. |
 
 ## Data & Storage Schema
 

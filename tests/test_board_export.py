@@ -6,8 +6,7 @@ from pathlib import Path
 import pytest
 
 from sourceboard.api import Services
-from sourceboard.board import NotFound
-from sourceboard.export import to_json, to_markdown, to_markers_csv
+from sourceboard.board import NotFound, to_json, to_markdown, to_markers_csv
 
 
 def chunk_id(services: Services, rel_path: str, needle: str) -> int:
@@ -124,7 +123,7 @@ def test_counterpoints_prefer_unused_sources(indexed: Services):
 
 
 def test_markdown_quote_escapes_block_markers():
-    from sourceboard.export import _quote
+    from sourceboard.board.export import _quote
 
     assert _quote("# Заголовок\n\n- пункт\nтекст") == "> \\# Заголовок\n>\n> \\- пункт\n> текст"
 

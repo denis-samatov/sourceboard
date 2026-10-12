@@ -4,8 +4,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from sourceboard.api import create_app
-from sourceboard.config import Settings
-from sourceboard.embed import HashEmbedder
+from sourceboard.core import Settings
+from sourceboard.ingestion import HashEmbedder
 
 
 @pytest.fixture

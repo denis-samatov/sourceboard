@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 
 from sourceboard.api import Services
-from sourceboard.config import Settings
-from sourceboard.embed import HashEmbedder
+from sourceboard.core import Settings
+from sourceboard.ingestion import HashEmbedder
 
 
 def make_pdf(pages: list[str]) -> bytes:

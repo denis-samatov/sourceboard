@@ -127,28 +127,21 @@ Changing model architecture or embedding dimensionality triggers automatic reind
 ## Architecture
 
 ```
-files ──► extract.py ──► chunks with locator ──► embed.py ──► SQLite
-          (pypdf, docx, OCR,    (page / timecode)   (EmbeddingGemma 2) (chunks + FTS5 + vectors)
-           subtitles, whisper,                                                 │
-           ffmpeg frames, audio)                                               ▼
-browser ◄── api.py (FastAPI) ◄── search.py (FTS5 + per-modality vectors, RRF)
-                              ◄── board.py (claims, roles, verification, re-check)
-                              ◄── export.py (Markdown, CSV, JSON)
+files ──► ingestion/extract.py ──► chunks with locator ──► ingestion/embed.py ──► core/db.py
+          (pypdf, docx, OCR,        (page / timecode)       (EmbeddingGemma 2)     (chunks + FTS5 + vectors)
+           subtitles, whisper,                                                                 │
+           ffmpeg frames, audio)                                                               ▼
+browser ◄── api/api.py (FastAPI) ◄── search/search.py (FTS5 + per-modality vectors, RRF)
+                                 ◄── board/board.py (claims, roles, verification, re-check)
+                                 ◄── board/export.py (Markdown, CSV, JSON)
 ```
 
-- `src/sourceboard/extract.py`: Extraction and chunking. Text paragraphs up to ~900 characters,
-  30-second speech windows aligned with cue boundaries, video frames every 10 seconds, and audio
-  windows every 30 seconds (16 kHz mono).
-- `src/sourceboard/embed.py`: Documents are formatted as `title: … | text: …`; queries use task prompts
-  `SearchQuery`, `FactChecking`, or `QuestionAnswering`. Enforces bf16 or fp32 (fp16 is prohibited by the
-  model card). Matryoshka dimensionality reduction with re-normalization.
-- `src/sourceboard/indexer.py`: Folder traversal, SHA-256 fingerprinting, versioning, and re-linking of
-  pinned evidence to updated chunks upon file modifications.
-- `src/sourceboard/search.py`: Vectors are held in-memory via NumPy and reloaded on index changes.
-  Sufficient for tens of thousands of chunks; scalable to LanceDB if needed.
-- `src/sourceboard/board.py`: Evidence links preserve snapshots of the matched quote and locator,
-  resilient against re-indexing or source folder deletions.
-- `src/sourceboard/web/`: Self-contained vanilla web interface without build pipelines or external dependencies.
+- `src/sourceboard/ingestion/`: Media content extraction, audio/visual/text embeddings, incremental indexing, and reprint deduplication.
+- `src/sourceboard/search/`: Hybrid lexical (SQLite FTS5) and semantic vector search combined via Reciprocal Rank Fusion, with offline evaluation tools.
+- `src/sourceboard/board/`: Claims and evidence board logic, verification change tracking, and multi-format dossier export.
+- `src/sourceboard/core/`: SQLite schema, transaction handling, application settings, and multi-project catalog.
+- `src/sourceboard/api/`: FastAPI web server and self-contained static browser frontend (`api/web/`).
+- `src/sourceboard/cli/`: Command-line tools and reproducible demo dataset generator.
 
 Index footprint: ~100k vectors × 768 × float32 ≈ 307 MB (excluding metadata and derived media).
 

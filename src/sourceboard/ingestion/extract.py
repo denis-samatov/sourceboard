@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 
-from .config import Settings
+from ..core.config import Settings
 
 log = logging.getLogger(__name__)
 

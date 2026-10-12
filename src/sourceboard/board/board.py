@@ -6,8 +6,8 @@ import sqlite3
 
 import numpy as np
 
-from .copies import Fragment, copy_pairs, independent_groups
-from .db import Database, utcnow
+from ..core.db import Database, utcnow
+from ..ingestion.copies import Fragment, copy_pairs, independent_groups
 
 ROLES = ("supports", "limits", "contradicts", "context")
 ROLE_LABELS = {

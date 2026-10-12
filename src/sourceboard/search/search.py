@@ -17,9 +17,9 @@ from pathlib import Path
 
 import numpy as np
 
-from .copies import Fragment, copy_pairs
-from .db import Database
-from .embed import Embedder
+from ..core.db import Database
+from ..ingestion.copies import Fragment, copy_pairs
+from ..ingestion.embed import Embedder
 
 RRF_K = 60
 # Candidates whose similarity trails the best vector hit by this much get the minimum weight.
