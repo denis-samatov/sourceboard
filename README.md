@@ -164,6 +164,12 @@ Index footprint: ~100k vectors × 768 × float32 ≈ 307 MB (excluding metadata 
 - DOCX files lack native pagination: exported citations list only the file name, with broader context viewable in the UI.
 - On CPU, initial model loading takes 15–20 seconds. Indexing long videos is bounded by speech transcription throughput.
 
+## Documentation
+
+- [Architecture & Module Guide](docs/ARCHITECTURE.md)
+- [Configuration Reference](docs/CONFIGURATION.md)
+- [Operations & Runbook](docs/RUNBOOK.md)
+
 ## Development
 
 ```bash
