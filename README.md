@@ -1,74 +1,72 @@
 # SourceBoard
 
-Локальный инструмент для сбора проверяемых оснований под тезисы. Он ищет по вопросу, тезису или
-изображению нужные фрагменты в документах, интервью, видео и скриншотах. Найденное можно открыть
-в оригинале на нужной странице или таймкоде, привязать к тезису с ролью и отметкой проверки,
-а затем выгрузить подборку с источниками.
+A local tool for gathering verifiable evidence to back claims. Search by question, claim, or image
+to pinpoint relevant snippets across documents, interviews, videos, and screenshots. Open found
+fragments directly in the original file at the exact page or timecode, link them to claims with
+assigned evidence roles and context-verification status, and export an evidence dossier with full citations.
 
-Поиск построен на [EmbeddingGemma 2](https://huggingface.co/google/embeddinggemma-2): текст,
-изображения и звук попадают в общее векторное пространство. Всё работает на вашем компьютере:
-индекс, распознавание речи и OCR выполняются локально, исходные файлы никуда не отправляются.
-Интернет нужен только один раз, чтобы скачать модели.
+Search is powered by [EmbeddingGemma 2](https://huggingface.co/google/embeddinggemma-2): text, images,
+and audio are embedded into a unified vector space. Everything runs entirely on your local machine:
+indexing, speech recognition, and OCR run locally, and your source files are never transmitted anywhere.
+An Internet connection is only required once to download the model weights.
 
-> Близость из поиска — это не вероятность истинности. Роль фрагмента («подтверждает»,
-> «ограничивает», «противоречит», «контекст») и проверку контекста отмечает человек.
+> Search similarity is not a probability of truth. The role of an evidence snippet ("supports",
+> "qualifies", "contradicts", "context") and context verification are evaluated and marked by human judgment.
 
-## Что умеет
+## What It Does
 
-- **Индексация папок**: PDF (текстовый слой, OCR сканов, изображения страниц), DOCX, TXT/MD,
-  изображения (OCR и визуальный индекс), аудио и видео (транскрипт, кадры, звук), субтитры
-  SRT/VTT. Субтитры с тем же именем, что у медиафайла (`talk.srt`, `talk.ru.srt` рядом с
-  `talk.mp4`), используются как его транскрипт.
-- **Инкрементальность**: неизменённые файлы пропускаются. При изменении файла растёт его версия.
-  Если файл пропал или диск отключён, каталог остаётся доступным для поиска, а оригинал
-  помечается как недоступный.
-- **Гибридный поиск**: полнотекстовый поиск (SQLite FTS5, словоформы через префиксы) и векторный
-  поиск по каждой модальности отдельно, затем слияние (RRF). Так тысячи кадров не вытесняют
-  несколько важных страниц документа. Есть фильтры по типу материала и режимы «слова», «смысл»
-  и «слова + смысл».
-- **Поиск по изображению**: кнопка, перетаскивание или вставка из буфера. Например, по скриншоту
-  слайда находится момент видео, где его показывали.
-- **Тезисы**: фрагмент добавляется с ролью, заметкой и отметкой «контекст проверен». «Найти
-  основания» ищет по формулировке (можно выделить её часть) с промптом `FactChecking`. «Другая
-  точка зрения» предлагает кандидатов из ещё не использованных источников; это не исчерпывающий
-  поиск противоречий.
-- **Повторная проверка**: если изменился источник (sha256), пропал фрагмент или существенно
-  переписан тезис, связь помечается «перепроверить». Видны старая цитата и текст новой версии.
-  Правку опечатки в тезисе можно явно отметить как мелкую, тогда проверки сохраняются.
-- **Экспорт**: Markdown-досье по тезисам и ролям с цитатами, страницами и таймкодами; CSV
-  монтажных отметок для фрагментов с таймкодами; полный JSON.
-- **Оценка качества**: `sourceboard eval` считает recall@k и MRR на ваших заданиях в режимах
-  lexical, vector и hybrid, чтобы было видно, откуда приходит польза.
+- **Folder Indexing**: PDF (text layer, scanned OCR, page renderings), DOCX, TXT/MD,
+  images (OCR and visual index), audio and video (transcripts, video frames, audio embeddings),
+  and SRT/VTT subtitles. Subtitles sharing the base name of a media file (`talk.srt`, `talk.en.srt`
+  next to `talk.mp4`) are automatically utilized as its transcript.
+- **Incremental Updates**: Unchanged files are skipped during scans. When a file changes, its version
+  is bumped. If a file disappears or an external drive is disconnected, the catalog remains searchable
+  while original sources are flagged as unavailable.
+- **Hybrid Search**: Combines full-text search (SQLite FTS5, with prefix matching for inflected forms)
+  and modality-specific vector search, merged via Reciprocal Rank Fusion (RRF). This prevents thousands
+  of video frames from crowding out crucial document pages. Includes media type filters and search modes:
+  "lexical", "semantic", and "hybrid".
+- **Image Search**: Upload via button, drag-and-drop, or paste from clipboard. For example, find the exact
+  moment in a presentation video where a specific slide was displayed using its screenshot.
+- **Claims & Evidence**: Link snippets with designated roles, notes, and a "context checked" toggle.
+  "Find Evidence" queries the claim text (or any selected substring) using the `FactChecking` prompt.
+  "Alternative View" suggests candidates from previously unused sources (not an exhaustive contradiction search).
+- **Verification Tracking**: If a source file changes (SHA-256 mismatch), a fragment goes missing, or a
+  claim is significantly edited, the link is flagged for "re-check". Editors can review both the prior
+  quote and the updated text. Minor typo fixes can be explicitly flagged as trivial to retain existing verifications.
+- **Exporting**: Export Markdown dossiers organized by claim and role with quotes, page numbers, and timecodes;
+  CSV cut-lists (edit markers) for video/audio clips; or complete JSON dumps.
+- **Quality Evaluation**: `sourceboard eval` computes recall@k and MRR on custom benchmark tasks across
+  lexical, vector, and hybrid modes to quantify performance gains.
 
-## Установка
+## Installation
 
-Нужны Python 3.12+ и [uv](https://docs.astral.sh/uv/).
+Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
 uv sync --extra ml --extra asr
 ```
 
 - `ml`: EmbeddingGemma 2 (sentence-transformers ≥ 6.1, transformers ≥ 5.19, torch, torchvision).
-  Без него SourceBoard работает в лексическом режиме: интерфейс честно пишет, что семантика
-  выключена.
-- `asr`: faster-whisper для расшифровки аудио и видео без субтитров. Транскрипты кэшируются.
-- Системные утилиты (необязательны, но желательны): `ffmpeg` (кадры, звук, длительность),
-  `tesseract` с языком `rus` (OCR), `pdftoppm` из poppler (рендер страниц PDF).
-  На macOS: `brew install ffmpeg tesseract tesseract-lang poppler`.
+  Without this extra, SourceBoard runs in lexical-only mode (the web UI clearly indicates that semantic search is disabled).
+- `asr`: faster-whisper for local transcription of audio and video lacking subtitles. Transcripts are cached.
+- Optional system dependencies: `ffmpeg` (frame extraction, audio, duration inspection),
+  `tesseract` (OCR), and `pdftoppm` from poppler (PDF page rendering).
+  On macOS: `brew install ffmpeg tesseract poppler`.
 
-Модель (~1,5 ГБ) скачивается с Hugging Face при первом запуске. Чтобы хранить её в другом месте,
-задайте `HF_HOME`. Для работы без сети после загрузки используйте `HF_HUB_OFFLINE=1`.
+The model (~1.5 GB) is downloaded from Hugging Face on first run. To store weights in a custom path,
+set `HF_HOME`. For fully offline operation after initial download, set `HF_HUB_OFFLINE=1`.
 
-## Запуск
+## Quick Start
 
 ```bash
-uv run sourceboard serve --folder ~/Проекты/завод/материалы
+uv run sourceboard serve --folder ~/Projects/investigation/sources
 ```
 
-Откройте <http://127.0.0.1:8765>. Сервер слушает только localhost и отклоняет запросы с чужим
-заголовком `Host` (защита от DNS rebinding), потому что он отдаёт локальные файлы.
+Open <http://127.0.0.1:8765>. The server binds exclusively to localhost and rejects external
+`Host` headers (DNS rebinding protection) because it serves local files.
 
-Попробовать на вымышленных данных:
+Try it out on synthetic sample data:
 
 ```bash
 uv run sourceboard demo ~/sourceboard-demo
@@ -78,19 +76,19 @@ uv run sourceboard demo ~/sourceboard-demo
 uv run sourceboard serve --folder ~/sourceboard-demo
 ```
 
-Демо-корпус описывает вымышленное закрытие завода: протокол, скан постановления (OCR), справку
-DOCX, слайды, интервью с субтитрами, видео слушаний со слайдами и заметку редактора с
-альтернативным объяснением. На macOS интервью озвучиваются через `say`. Без него создаются
-субтитры с оценочными таймкодами и видео без звука.
+The demo corpus depicts a fictional factory closure: meeting minutes, scanned resolution (OCR),
+DOCX memo, slide deck, interview with subtitles, recorded public hearing with presentation slides,
+and an editorial commentary presenting an alternative perspective. On macOS, interviews are voiced
+via `say`. Without `say`, subtitles with estimated timecodes and silent video are generated.
 
-### Командная строка
+### CLI Commands
 
 ```bash
-uv run sourceboard index ~/материалы
+uv run sourceboard index ~/sources
 ```
 
 ```bash
-uv run sourceboard search "сколько рейсов осталось после закрытия" --limit 5
+uv run sourceboard search "how many bus routes remain after closure" --limit 5
 ```
 
 ```bash
@@ -98,76 +96,75 @@ uv run sourceboard eval ~/sourceboard-demo/eval/tasks.jsonl --k 5
 ```
 
 ```bash
-uv run sourceboard export --format markdown -o подборка.md
+uv run sourceboard export --format markdown -o dossier.md
 ```
 
-Формат заданий для `eval` (одна строка JSONL):
+Evaluation task format (JSONL, one task per line):
 
 ```json
-{"query": "льготный проезд", "expected": [{"source": "documents/postanovlenie_47.pdf", "page": 2}]}
+{"query": "discounted transit fare", "expected": [{"source": "documents/resolution_47.pdf", "page": 2}]}
 ```
 
-`source` сравнивается как окончание пути. `page` и `t` (секунды, допуск ±2 с) необязательны.
+`source` matches against the tail of the path. `page` and `t` (seconds, ±2s tolerance) are optional.
 
-## Настройки
+## Configuration
 
-| Переменная | По умолчанию | Назначение |
+| Environment Variable | Default | Description |
 |---|---|---|
-| `SOURCEBOARD_DATA_DIR` | `~/.sourceboard` | индекс, кадры, рендеры страниц, кэш транскриптов |
-| `SOURCEBOARD_EMBEDDER` | `auto` | `gemma`, `hash` (лексический) или `auto` |
-| `SOURCEBOARD_DIM` | `768` | размер вектора: 768, 512, 256 или 128 (MRL) |
-| `SOURCEBOARD_DEVICE` | авто | `cpu`, `mps` или `cuda` |
-| `SOURCEBOARD_EMBED_IMAGES` / `_AUDIO` | `1` | 0 — не загружать соответствующий энкодер |
-| `SOURCEBOARD_ASR`, `SOURCEBOARD_ASR_MODEL` | `1`, `small` | распознавание речи |
-| `SOURCEBOARD_OCR`, `SOURCEBOARD_OCR_LANGS` | `1`, `rus+eng` | OCR |
-| `SOURCEBOARD_FRAME_INTERVAL` | `10` | шаг кадров видео, секунд |
-| `SOURCEBOARD_TRANSCRIPT_WINDOW`, `_AUDIO_WINDOW` | `30` | окна речи и звука, секунд |
+| `SOURCEBOARD_DATA_DIR` | `~/.sourceboard` | Index database, extracted frames, page renders, transcript cache |
+| `SOURCEBOARD_EMBEDDER` | `auto` | `gemma`, `hash` (lexical), or `auto` |
+| `SOURCEBOARD_DIM` | `768` | Embedding dimensionality: 768, 512, 256, or 128 (MRL) |
+| `SOURCEBOARD_DEVICE` | auto | `cpu`, `mps`, or `cuda` |
+| `SOURCEBOARD_EMBED_IMAGES` / `_AUDIO` | `1` | Set to 0 to disable loading image or audio encoders |
+| `SOURCEBOARD_ASR`, `SOURCEBOARD_ASR_MODEL` | `1`, `small` | Automatic speech recognition toggle and model name |
+| `SOURCEBOARD_OCR`, `SOURCEBOARD_OCR_LANGS` | `1`, `rus+eng` | OCR toggle and language codes |
+| `SOURCEBOARD_FRAME_INTERVAL` | `10` | Video frame sampling interval in seconds |
+| `SOURCEBOARD_TRANSCRIPT_WINDOW`, `_AUDIO_WINDOW` | `30` | Speech and audio chunk window size in seconds |
 
-Флаги `--data-dir`, `--embedder`, `--dim` и `--device` переопределяют переменные. Смена модели
-или размера вектора приводит к переиндексации при следующем сканировании.
+CLI flags `--data-dir`, `--embedder`, `--dim`, and `--device` override these environment variables.
+Changing model architecture or embedding dimensionality triggers automatic reindexing on the next scan.
 
-## Как устроено
+## Architecture
 
 ```
-файлы ──► extract.py ──► фрагменты с локатором ──► embed.py ──► SQLite
-          (pypdf, docx, OCR,  (страница / таймкод)     (EmbeddingGemma 2)  (chunks + FTS5 + векторы)
-           субтитры, whisper,                                                    │
-           кадры ffmpeg, звук)                                                   ▼
-браузер ◄── api.py (FastAPI) ◄── search.py (FTS5 + векторы по модальностям, RRF)
-                              ◄── board.py (тезисы, роли, проверка, перепроверка)
+files ──► extract.py ──► chunks with locator ──► embed.py ──► SQLite
+          (pypdf, docx, OCR,    (page / timecode)   (EmbeddingGemma 2) (chunks + FTS5 + vectors)
+           subtitles, whisper,                                                 │
+           ffmpeg frames, audio)                                               ▼
+browser ◄── api.py (FastAPI) ◄── search.py (FTS5 + per-modality vectors, RRF)
+                              ◄── board.py (claims, roles, verification, re-check)
                               ◄── export.py (Markdown, CSV, JSON)
 ```
 
-- `src/sourceboard/extract.py`: извлечение и нарезка. Абзацы до ~900 символов, окна речи
-  по 30 с по границам реплик, кадр каждые 10 с, звук окнами по 30 с (16 кГц моно).
-- `src/sourceboard/embed.py`: документы кодируются как `title: … | text: …`, запросы — с
-  промптами `SearchQuery`, `FactChecking` или `QuestionAnswering`. Только bf16/fp32: fp16 для
-  этой модели запрещён в карточке. Обрезка размерности с повторной нормализацией.
-- `src/sourceboard/indexer.py`: обход папок, sha256, версии, перепривязка выбранных фрагментов
-  к новым кускам после изменения файла.
-- `src/sourceboard/search.py`: векторы держатся в памяти (numpy) и перезагружаются при изменении
-  индекса. Для десятков тысяч фрагментов этого достаточно; дальше можно перейти на LanceDB.
-- `src/sourceboard/board.py`: связь фрагмента с тезисом хранит снимок цитаты и локатора, поэтому
-  переживает переиндексацию и удаление папки.
-- `src/sourceboard/web/`: интерфейс без сборки и внешних зависимостей.
+- `src/sourceboard/extract.py`: Extraction and chunking. Text paragraphs up to ~900 characters,
+  30-second speech windows aligned with cue boundaries, video frames every 10 seconds, and audio
+  windows every 30 seconds (16 kHz mono).
+- `src/sourceboard/embed.py`: Documents are formatted as `title: … | text: …`; queries use task prompts
+  `SearchQuery`, `FactChecking`, or `QuestionAnswering`. Enforces bf16 or fp32 (fp16 is prohibited by the
+  model card). Matryoshka dimensionality reduction with re-normalization.
+- `src/sourceboard/indexer.py`: Folder traversal, SHA-256 fingerprinting, versioning, and re-linking of
+  pinned evidence to updated chunks upon file modifications.
+- `src/sourceboard/search.py`: Vectors are held in-memory via NumPy and reloaded on index changes.
+  Sufficient for tens of thousands of chunks; scalable to LanceDB if needed.
+- `src/sourceboard/board.py`: Evidence links preserve snapshots of the matched quote and locator,
+  resilient against re-indexing or source folder deletions.
+- `src/sourceboard/web/`: Self-contained vanilla web interface without build pipelines or external dependencies.
 
-Объём индекса: 100 тыс. векторов × 768 × float32 ≈ 307 МБ, без метаданных и производных медиа.
+Index footprint: ~100k vectors × 768 × float32 ≈ 307 MB (excluding metadata and derived media).
 
-## Ограничения
+## Limitations
 
-- Хеш обнаруживает изменение файла, но не доказывает подлинность документа.
-- Три перепечатки одного заявления не становятся тремя независимыми подтверждениями. Отношения
-  происхождения пока не моделируются.
-- Пороги и окна нарезки (`SIMILARITY_MARGIN`, размеры окон) — стартовые эвристики. Их нужно
-  настраивать через `sourceboard eval` на реальном архиве.
-- Звук видео и аудио индексируется как звук, а не как речь. Для точных цитат нужен транскрипт
-  (субтитры или faster-whisper).
-- У DOCX нет страниц: в выгрузке для таких фрагментов указан только файл, окружение видно в
-  просмотре.
-- На CPU первая загрузка модели занимает 15–20 с. Индексация длинного видео упирается в
-  распознавание речи.
+- SHA-256 hashes detect file modifications, but do not prove document authenticity.
+- Multiple syndications or reprints of the same press release do not constitute independent corroboration.
+  Provenance modeling is not yet supported.
+- Chunking windows and thresholds (`SIMILARITY_MARGIN`, window durations) are baseline heuristics; calibrate
+  them on real-world archives using `sourceboard eval`.
+- Audio tracks from media files are indexed as acoustic audio, not speech. Verifiable quotations require
+  transcripts (subtitles or faster-whisper).
+- DOCX files lack native pagination: exported citations list only the file name, with broader context viewable in the UI.
+- On CPU, initial model loading takes 15–20 seconds. Indexing long videos is bounded by speech transcription throughput.
 
-## Разработка
+## Development
 
 ```bash
 uv run pytest
@@ -177,4 +174,4 @@ uv run pytest
 uv run ruff check src tests
 ```
 
-Тесты используют лексический `HashEmbedder` и не требуют модели или сети.
+Tests use the lexical `HashEmbedder` and require neither model downloads nor network access.
