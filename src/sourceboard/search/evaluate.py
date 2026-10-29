@@ -78,6 +78,8 @@ def evaluate(engine: SearchEngine, tasks: list[dict], k: int = 5, mode: str = "h
         "mode": mode,
         "k": k,
         "tasks": len(results),
+        f"hit@{k}": sum(r.rank is not None for r in results) / n,
+        # Kept for existing consumers; this is query hit rate, not per-item recall.
         f"recall@{k}": sum(r.rank is not None for r in results) / n,
         f"mrr@{k}": sum(1 / r.rank for r in results if r.rank) / n,
         "misses": [r.query for r in results if r.rank is None],

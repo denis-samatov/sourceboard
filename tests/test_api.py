@@ -77,3 +77,20 @@ def test_source_file_supports_ranges(client: TestClient):
 def test_image_search_needs_vision_model(client: TestClient):
     response = client.post("/api/search/image", files={"file": ("q.png", b"x", "image/png")})
     assert response.status_code == 409
+
+
+def test_query_image_upload_has_a_byte_limit(client: TestClient):
+    response = client.post(
+        "/api/search/image",
+        files={"file": ("large.png", b"x" * (10 * 1024 * 1024 + 1), "image/png")},
+    )
+    assert response.status_code == 413
+
+
+def test_chunked_query_body_is_bounded_before_multipart_parsing(client: TestClient):
+    response = client.post(
+        "/api/search/image",
+        content=(b"x" * (1024 * 1024) for _ in range(11)),
+        headers={"Content-Type": "multipart/form-data; boundary=oversized"},
+    )
+    assert response.status_code == 413

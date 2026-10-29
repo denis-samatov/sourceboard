@@ -388,12 +388,22 @@ class Indexer:
         return True
 
     def _embeddings_current(self, source_id: int) -> bool:
-        row = self.db.one(
-            """SELECT COUNT(*) AS stale FROM chunks
-               WHERE source_id = ? AND vector IS NOT NULL AND embed_model != ?""",
-            (source_id, self.embedder.name),
+        rows = self.db.query(
+            "SELECT modality, text, embed_model, vector FROM chunks WHERE source_id = ?",
+            (source_id,),
         )
-        return row is None or row["stale"] == 0
+        for row in rows:
+            modality = "image" if row["modality"] == "video" else row["modality"]
+            expected = modality in self.embedder.modalities and (
+                modality != "text" or bool(row["text"] and row["text"].strip())
+            )
+            if row["vector"] is not None and row["embed_model"] != self.embedder.name:
+                return False
+            if expected and row["vector"] is None:
+                return (
+                    False  # Retry a partial/failed embedding even when source bytes did not change.
+                )
+        return True
 
     def _embed(self, path: Path, extraction: Extraction) -> list[np.ndarray | None]:
         """Embed every piece; a failing modality is reported as a note, not a fatal error."""

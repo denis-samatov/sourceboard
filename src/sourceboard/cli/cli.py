@@ -164,7 +164,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_search)
 
-    p = sub.add_parser("eval", help="recall@k и MRR на наборе заданий JSONL")
+    p = sub.add_parser("eval", help="hit@k и MRR на наборе заданий JSONL")
     p.add_argument("tasks")
     p.add_argument("--k", type=int, default=5)
     p.add_argument(
