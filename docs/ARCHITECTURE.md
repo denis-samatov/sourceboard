@@ -60,7 +60,7 @@ The codebase in `src/sourceboard/` is partitioned into focused, cohesive subpack
 | Module | Responsibility |
 |---|---|
 | `search/search.py` | Hybrid search engine (`SearchEngine`) combining SQLite FTS5 lexical matching and in-memory cosine similarity across modalities, fused via RRF. |
-| `search/evaluate.py` | Offline retrieval benchmark evaluation computing Recall@K and MRR on JSONL test suites (`evaluate`). |
+| `search/evaluate.py` | Offline retrieval benchmark evaluation computing Hit@K and MRR on JSONL test suites (`evaluate`). |
 
 ### `sourceboard.board`
 | Module | Responsibility |

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
 import mimetypes
-import shutil
 import tempfile
 from pathlib import Path
 from typing import Literal
@@ -25,10 +25,57 @@ from ..ingestion.indexer import Indexer
 from ..search.search import MODES, SearchEngine
 
 WEB_DIR = Path(__file__).parent / "web"
+MAX_QUERY_IMAGE_BYTES = 10 * 1024 * 1024
+MAX_QUERY_BODY_BYTES = MAX_QUERY_IMAGE_BYTES + 64 * 1024  # multipart headers/fields
 LOCAL_HOSTS = ["127.0.0.1", "localhost", "[::1]", "::1"]
 
 Modality = Literal["text", "image", "video", "audio"]
 Role = Literal["supports", "limits", "contradicts", "context"]
+
+
+class QueryUploadLimit:
+    """Bound the query-image body before multipart parsing/spooling, including chunked input."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if (
+            scope["type"] != "http"
+            or scope["method"] != "POST"
+            or scope["path"] != "/api/search/image"
+        ):
+            return await self.app(scope, receive, send)
+        chunks, size = [], 0
+        try:
+            async with asyncio.timeout(10):
+                while True:
+                    message = await receive()
+                    if message["type"] == "http.disconnect":
+                        return
+                    body = message.get("body", b"")
+                    size += len(body)
+                    if size > MAX_QUERY_BODY_BYTES:
+                        return await JSONResponse(
+                            {"detail": "Image upload too large"}, status_code=413
+                        )(scope, receive, send)
+                    chunks.append(body)
+                    if not message.get("more_body", False):
+                        break
+        except TimeoutError:
+            return await JSONResponse({"detail": "Image upload timed out"}, status_code=408)(
+                scope, receive, send
+            )
+        delivered = False
+
+        async def buffered_receive():
+            nonlocal delivered
+            if delivered:
+                return await receive()
+            delivered = True
+            return {"type": "http.request", "body": b"".join(chunks), "more_body": False}
+
+        return await self.app(scope, buffered_receive, send)
 
 
 class FolderIn(BaseModel):
@@ -87,6 +134,7 @@ def create_app(
     app = FastAPI(title="SourceBoard", version=__version__)
     app.state.services = services
     # The API serves local files; refuse requests whose Host is not local (DNS rebinding).
+    app.add_middleware(QueryUploadLimit)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts or LOCAL_HOSTS)
 
     @app.exception_handler(NotFound)
@@ -256,8 +304,11 @@ def create_app(
         suffix = Path(file.filename or "query.png").suffix.lower()
         if suffix not in IMAGE_EXT:
             raise HTTPException(400, f"Неподдерживаемый формат изображения: {suffix}")
+        data = await file.read(MAX_QUERY_IMAGE_BYTES + 1)
+        if len(data) > MAX_QUERY_IMAGE_BYTES:
+            raise HTTPException(413, "Image upload too large")
         with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-            shutil.copyfileobj(file.file, tmp)
+            tmp.write(data)
             tmp_path = Path(tmp.name)
         try:
             return s.search.search_by_image(tmp_path, limit=limit, modalities=modalities)

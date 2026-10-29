@@ -32,7 +32,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --locked
 
       - name: Lint with ruff
         run: uv run ruff check src tests
@@ -45,3 +45,11 @@ jobs:
 
       - name: CLI smoke test
         run: uv run sourceboard --help
+
+      - name: Build and smoke-test the installed wheel
+        shell: bash
+        run: |
+          uv build
+          python -m venv "$RUNNER_TEMP/sourceboard-wheel"
+          uv pip install --python "$RUNNER_TEMP/sourceboard-wheel/bin/python" dist/*.whl
+          "$RUNNER_TEMP/sourceboard-wheel/bin/sourceboard" --help

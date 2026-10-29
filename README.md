@@ -36,7 +36,7 @@ An Internet connection is only required once to download the model weights.
   quote and the updated text. Minor typo fixes can be explicitly flagged as trivial to retain existing verifications.
 - **Exporting**: Export Markdown dossiers organized by claim and role with quotes, page numbers, and timecodes;
   CSV cut-lists (edit markers) for video/audio clips; or complete JSON dumps.
-- **Quality Evaluation**: `sourceboard eval` computes recall@k and MRR on custom benchmark tasks across
+- **Quality Evaluation**: `sourceboard eval` computes query hit@k and MRR on custom benchmark tasks across
   lexical, vector, and hybrid modes to quantify performance gains.
 
 ## Installation
@@ -174,3 +174,10 @@ uv run ruff check src tests
 ```
 
 Tests use the lexical `HashEmbedder` and require neither model downloads nor network access.
+
+### Evaluation metric compatibility
+
+`hit@k` is the fraction of queries with **any** annotated expected item in the top k.
+The existing `recall@k` JSON key remains a compatibility alias for that query hit rate;
+it is not the fraction of all relevant items retrieved. MRR uses the first relevant hit.
+Synthetic demo scores do not establish quality on a real archive.

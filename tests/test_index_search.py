@@ -182,3 +182,55 @@ def test_hybrid_damps_word_matches_far_from_meaning(settings, tmp_path: Path):
     assert hits[0]["text"].startswith("граф")
     assert hits[1]["similarity"] == 0.4 and hits[1]["matched_by"] == ["lexical", "semantic"]
     assert hits[0]["score"] > 1.5 * hits[1]["score"]
+
+
+def test_transient_embedding_failure_retries_unchanged_source(settings, tmp_path):
+    from sourceboard.ingestion import HashEmbedder
+
+    class TemporaryFailure(HashEmbedder):
+        attempts = 0
+
+        def embed_documents(self, docs):
+            self.attempts += 1
+            if self.attempts == 1:
+                raise RuntimeError("temporary model failure")
+            return super().embed_documents(docs)
+
+    root = tmp_path / "retry-corpus"
+    root.mkdir()
+    (root / "note.txt").write_text("The bridge budget is thirty million.")
+    embedder = TemporaryFailure(settings.dim)
+    services = Services(settings, embedder)
+    folder = services.indexer.add_folder(root)
+    services.indexer.scan([folder])
+    chunk = services.db.one("SELECT id, vector FROM chunks")
+    assert chunk["vector"] is None
+    thesis = services.board.create_thesis("Budget")
+    evidence = services.board.add_evidence(thesis["id"], chunk["id"])
+    second = services.indexer.scan([folder])
+    assert second["indexed"] == 1 and second["skipped"] == 0
+    assert services.db.one("SELECT vector FROM chunks")["vector"] is not None
+    assert services.db.one("SELECT version FROM sources")["version"] == 1
+    assert (
+        services.db.one("SELECT chunk_id FROM evidence WHERE id = ?", (evidence["id"],))["chunk_id"]
+        is not None
+    )
+    assert services.indexer.scan([folder])["skipped"] == 1
+
+
+def test_evaluation_labels_query_success_as_hit_at_k(indexed):
+    report = evaluate(
+        indexed.search,
+        [
+            {
+                "query": "bus ridership",
+                "expected": [
+                    {"source": "report.pdf", "page": 2},
+                    {"source": "not-found.pdf"},
+                ],
+            }
+        ],
+        k=3,
+    )
+    assert report["hit@3"] == 1.0
+    assert report["recall@3"] == 1.0  # compatibility alias, not item recall
