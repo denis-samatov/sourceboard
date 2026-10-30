@@ -9,6 +9,7 @@ import re
 import shutil
 import subprocess
 import threading
+import zipfile
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
@@ -16,6 +17,18 @@ from pathlib import Path
 from ..core.config import Settings
 
 log = logging.getLogger(__name__)
+MAX_DOCX_EXPANDED_BYTES = 128 * 1024 * 1024
+MAX_IMAGE_PIXELS = 40_000_000
+
+
+def validate_image(path: Path) -> None:
+    """Inspect dimensions before OCR or an embedding model decodes pixels."""
+    from PIL import Image
+
+    with Image.open(path) as image:
+        if image.width * image.height > MAX_IMAGE_PIXELS:
+            raise ValueError("image pixel limit exceeded (40 million pixels)")
+
 
 DOCUMENT_EXT = {".pdf", ".txt", ".md", ".markdown", ".docx"}
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tif", ".tiff"}
@@ -345,6 +358,9 @@ class Extractor:
     def _docx(self, path: Path) -> Extraction:
         import docx
 
+        with zipfile.ZipFile(path) as archive:
+            if sum(info.file_size for info in archive.infolist()) > MAX_DOCX_EXPANDED_BYTES:
+                raise ValueError("DOCX expanded size limit exceeded (128 MiB)")
         document = docx.Document(str(path))
         parts = [p.text for p in document.paragraphs if p.text.strip()]
         for table in document.tables:
@@ -441,6 +457,7 @@ class Extractor:
         return result
 
     def _image(self, path: Path) -> Extraction:
+        validate_image(path)
         result = Extraction()
         text = ""
         if self.settings.ocr_enabled:

@@ -70,3 +70,68 @@ def test_discover_pairs_subtitles_with_media(tmp_path: Path):
     assert set(entries) == {"talk.mp4", "orphan.srt"}
     assert entries["talk.mp4"].sidecar == tmp_path / "talk.ru.srt"
     assert entries["orphan.srt"].kind == "transcript"
+
+
+def test_invalid_chunk_and_media_windows_fail_before_extraction(tmp_path):
+    import pytest
+
+    from sourceboard.core import Settings
+
+    for field in ("text_chunk_chars", "transcript_window_s", "audio_window_s", "frame_interval_s"):
+        for value in (0, -1, float("inf"), float("nan")):
+            with pytest.raises(ValueError):
+                Settings(data_dir=tmp_path, **{field: value})
+
+
+def test_docx_expansion_limit_is_checked_before_xml_parser(tmp_path, monkeypatch):
+    import zipfile
+
+    import docx
+    import pytest
+
+    import sourceboard.ingestion.extract as extraction
+    from sourceboard.core import Settings
+
+    path = tmp_path / "bomb.docx"
+    with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("word/document.xml", b"x" * 4096)
+    monkeypatch.setattr(extraction, "MAX_DOCX_EXPANDED_BYTES", 1024, raising=False)
+    monkeypatch.setattr(docx, "Document", lambda *args: pytest.fail("XML parser must not run"))
+    with pytest.raises(ValueError, match="expanded"):
+        extraction.Extractor(Settings(data_dir=tmp_path), frozenset())._docx(path)
+
+
+def test_image_pixel_limit_precedes_ocr(tmp_path, monkeypatch):
+    import pytest
+    from PIL import Image
+
+    import sourceboard.ingestion.extract as extraction
+    from sourceboard.core import Settings
+
+    path = tmp_path / "large.png"
+    Image.new("RGB", (16, 16)).save(path)
+    monkeypatch.setattr(extraction, "MAX_IMAGE_PIXELS", 100, raising=False)
+    monkeypatch.setattr(extraction, "ocr_image", lambda *args: pytest.fail("OCR must not run"))
+    with pytest.raises(ValueError, match="pixel"):
+        extraction.Extractor(Settings(data_dir=tmp_path), frozenset({"image"}))._image(path)
+
+
+def test_image_query_checks_pixels_before_embedding(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    import pytest
+    from PIL import Image
+
+    import sourceboard.ingestion.extract as extraction
+    from sourceboard.search.search import SearchEngine
+
+    path = tmp_path / "query.png"
+    Image.new("RGB", (16, 16)).save(path)
+    monkeypatch.setattr(extraction, "MAX_IMAGE_PIXELS", 100)
+    embedder = SimpleNamespace(
+        name="fake",
+        modalities={"image"},
+        embed_images=lambda *args: pytest.fail("model must not run"),
+    )
+    with pytest.raises(ValueError, match="pixel"):
+        SearchEngine(None, embedder).search_by_image(path)
