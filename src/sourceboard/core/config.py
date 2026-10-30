@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import os
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -47,6 +48,16 @@ class Settings:
     frame_interval_s: float = 10.0
 
     def __post_init__(self) -> None:
+        if (
+            isinstance(self.text_chunk_chars, bool)
+            or not isinstance(self.text_chunk_chars, int)
+            or self.text_chunk_chars <= 0
+        ):
+            raise ValueError("text_chunk_chars must be a positive integer")
+        for name in ("transcript_window_s", "audio_window_s", "frame_interval_s"):
+            value = getattr(self, name)
+            if not math.isfinite(value) or value <= 0:
+                raise ValueError(f"{name} must be finite and positive")
         if self.dim not in SUPPORTED_DIMS:
             raise ValueError(f"dim must be one of {SUPPORTED_DIMS}, got {self.dim}")
 

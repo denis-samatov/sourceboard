@@ -79,3 +79,12 @@ Before claiming semantic quality:
 
 Real Gemma/media execution, annotated archive quality, parser isolation and target restore
 are external acceptance steps. Offline HashEmbedder tests and a wheel smoke do not prove them.
+
+## Extraction resource guards
+
+DOCX archives declaring more than 128 MiB total expanded entries and images over
+40 million pixels are rejected before XML/OCR/model processing. Image queries use
+the same pixel guard. Chunk sizes must be positive integers; media windows must be
+finite and positive, preventing non-progressing extraction loops. These checks are
+resource guards, not a parser sandbox: use trusted local archives. Hostile PDF/media
+CPU limits and process/container memory isolation still need target qualification.

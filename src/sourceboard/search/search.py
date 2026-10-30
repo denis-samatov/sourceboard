@@ -218,6 +218,9 @@ class SearchEngine:
     def search_by_image(self, image: Path, **kwargs) -> list[dict]:
         if "image" not in self.embedder.modalities:
             raise RuntimeError("Поиск по изображению требует EmbeddingGemma 2 с vision-энкодером")
+        from ..ingestion.extract import validate_image
+
+        validate_image(image)
         return self.search_by_vector(self.embedder.embed_images([image])[0], **kwargs)
 
     def similar(
