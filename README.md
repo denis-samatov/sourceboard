@@ -13,6 +13,19 @@ An Internet connection is only required once to download the model weights.
 > Search similarity is not a probability of truth. The role of an evidence snippet ("supports",
 > "qualifies", "contradicts", "context") and context verification are evaluated and marked by human judgment.
 
+<p align="center">
+  <a href="#quick-start"><img alt="Launch the local demo" src="https://img.shields.io/badge/Launch%20the%20local%20demo-0E7490?style=for-the-badge" height="32"></a>
+  <a href="#architecture"><img alt="Inspect the architecture" src="https://img.shields.io/badge/Inspect%20the%20architecture-3749A6?style=for-the-badge" height="32"></a>
+  <a href="docs/RUNBOOK.md"><img alt="Read the runbook" src="https://img.shields.io/badge/Read%20the%20runbook-6B3FA0?style=for-the-badge" height="32"></a>
+</p>
+
+<details>
+<summary>Follow a claim back to its source</summary>
+
+Search for a phrase in the [demo workspace](#quick-start). Open a result at its original page or timecode, link it to a claim, assign an evidence role, and export a cited dossier. Use the context view to decide how a fragment relates to the claim.
+
+</details>
+
 ## What It Does
 
 - **Folder Indexing**: PDF (text layer, scanned OCR, page renderings), DOCX, TXT/MD,
@@ -126,14 +139,13 @@ Changing model architecture or embedding dimensionality triggers automatic reind
 
 ## Architecture
 
-```
-files ──► ingestion/extract.py ──► chunks with locator ──► ingestion/embed.py ──► core/db.py
-          (pypdf, docx, OCR,        (page / timecode)       (EmbeddingGemma 2)     (chunks + FTS5 + vectors)
-           subtitles, whisper,                                                                 │
-           ffmpeg frames, audio)                                                               ▼
-browser ◄── api/api.py (FastAPI) ◄── search/search.py (FTS5 + per-modality vectors, RRF)
-                                 ◄── board/board.py (claims, roles, verification, re-check)
-                                 ◄── board/export.py (Markdown, CSV, JSON)
+```mermaid
+flowchart TD
+    Media["Documents and media"] --> Extract["Extract text or media fragments"]
+    Extract --> Index[("SQLite text and vector index")]
+    Index --> Search["Hybrid search"]
+    Search --> Board["Human-reviewed evidence board"]
+    Board --> Export["Markdown, CSV or JSON export"]
 ```
 
 - `src/sourceboard/ingestion/`: Media content extraction, audio/visual/text embeddings, incremental indexing, and reprint deduplication.
