@@ -12,11 +12,11 @@ uv run sourceboard serve --folder /path/to/archive --port 8765
 
 Access the UI at `http://127.0.0.1:8765`.
 
-The service binds only to loopback interfaces (`127.0.0.1`, `localhost`) and rejects requests with unexpected `Host` headers to prevent DNS rebinding attacks.
+The service binds to loopback by default and checks incoming `Host` headers. Keep it bound to `127.0.0.1` when working with local archives.
 
 ## 2. Generating Demo Corpus
 
-To evaluate the system without existing documents, generate the bundled fictional demo corpus:
+Use the [worked walkthrough](demo.md) to go from the fictional corpus to a cited export. To generate the corpus:
 
 ```bash
 uv run sourceboard demo ~/sourceboard-demo

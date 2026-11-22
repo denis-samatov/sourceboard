@@ -14,7 +14,7 @@ An Internet connection is only required once to download the model weights.
 > "qualifies", "contradicts", "context") and context verification are evaluated and marked by human judgment.
 
 <p align="center">
-  <a href="#quick-start"><img alt="Launch the local demo" src="https://img.shields.io/badge/Launch%20the%20local%20demo-0E7490?style=for-the-badge" height="32"></a>
+  <a href="docs/demo.md"><img alt="Launch the local demo" src="https://img.shields.io/badge/Launch%20the%20local%20demo-0E7490?style=for-the-badge" height="32"></a>
   <a href="#architecture"><img alt="Inspect the architecture" src="https://img.shields.io/badge/Inspect%20the%20architecture-3749A6?style=for-the-badge" height="32"></a>
   <a href="docs/RUNBOOK.md"><img alt="Read the runbook" src="https://img.shields.io/badge/Read%20the%20runbook-6B3FA0?style=for-the-badge" height="32"></a>
 </p>
@@ -57,7 +57,13 @@ Search for a phrase in the [demo workspace](#quick-start). Open a result at its 
 Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-uv sync --extra ml --extra asr
+uv sync --locked
+```
+
+For semantic search and local speech recognition, enable the optional extras:
+
+```bash
+uv sync --locked --extra ml --extra asr
 ```
 
 - `ml`: EmbeddingGemma 2 (sentence-transformers ≥ 6.1, transformers ≥ 5.19, torch, torchvision).
@@ -76,8 +82,7 @@ set `HF_HOME`. For fully offline operation after initial download, set `HF_HUB_O
 uv run sourceboard serve --folder ~/Projects/investigation/sources
 ```
 
-Open <http://127.0.0.1:8765>. The server binds exclusively to localhost and rejects external
-`Host` headers (DNS rebinding protection) because it serves local files.
+Open <http://127.0.0.1:8765>. The server binds to loopback by default. Keep it local when reviewing source files.
 
 Try it out on synthetic sample data:
 
